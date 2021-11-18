@@ -27,7 +27,7 @@ class CompanyController extends Controller
      */
     public function create()
     {
-        //
+        return view ('company.create');
     }
 
     /**
@@ -38,46 +38,37 @@ class CompanyController extends Controller
      */
     public function store(Request $request)
     {
-        //Ivesti komanija be klientu
-        //Ivesti kompanija su vienu klientu
-        //Ivesti kompanija su daug klientu
+ //ivesti kompanija be klientu x
+        //ivesti kompanja su vienu klientu x
+        //ivesti kompanija su n+1 klientu x
 
-
-
-        // $validateVar = $request->validate([
-        //     'task_title' => 'required|regex:/^[\pL\s]+$/u|unique:tasks,title|min:6|max:225',
-        //     'task_description' => 'required|max:1500',
-        //     'task_logo' => 'image|mimes:jpg,jpeg,png',
-        //     'type_id' => 'required|numeric|gt:0|lte:'.$type_count,
-        //     'owner_id' => 'required|numeric|gt:0|lte:'.$owners_count,
-        //     'task_start_date'=>'required|before:task_end_date',
-        //     'task_end_date'=>'required'
-
-        // ]);
-
-        $clientsNew = $request->clientsNew;
-
+        $clientsNew = $request->clientsNew; //checkbox Add Clients?
         $company = new Company;
-
         $company->title = $request->companyTitle;
         $company->description = $request->companyDescription;
         $company->address = $request->companyAddress;
 
         $company->save();
 
-        $kiekDinaminiulauku = 30;
-        //Ar mes norime ivesti klientu ar ne
-        if($clientsNew == "1") {
-            for($i = 0; $i = $kiekDinaminiulauku; $i++) {
-        $client = new Client;
-        $client->name = $request->clientName[$i];
-        $client->surname = $request->clientSurname[$i];
-        $client->description = $request->clientDescription[$i];
-        $client->company_id = $company->id;
-        $company->save();
+        // $kiekNorimeIvesti = 1;
+        // $request->clientName  - //kiek elementu turi sis masyvas?
+        $clientsInputCount = count($request->clientName);
+        // $clientsInputCount = count($request->clientDescription);
+        // $clientsInputCount = count($request->clientAddress);
 
+
+        if($clientsNew == "1") {
+
+            for($i = 0 ; $i < $clientsInputCount ; $i++) {
+                $client = new Client;
+                $client->name = $request->clientName[$i];
+                $client->surname = $request->clientSurname[$i];
+                $client->description = $request->clientDescription[$i];
+                $client->company_id = $company->id; //nuo jokio if'o nepriklauso
+                $client->save();
             }
         }
+
         return redirect()->route("company.index");
     }
 
@@ -89,8 +80,9 @@ class CompanyController extends Controller
      */
     public function show(Company $company)
     {
-        $clients = $company->companyClients;
-        return view("company.show", ['company' => $company, 'clients' => $clients]);
+        $clients = $company->companyClients;  //Masyvas su visais klientais, priklausanciais kompanijai
+        $clientsCount = $clients->count();
+        return view("company.show", ['company' => $company, 'clients' => $clients, 'clientsCount' => $clientsCount]);
     }
 
     /**

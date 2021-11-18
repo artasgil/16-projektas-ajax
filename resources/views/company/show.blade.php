@@ -1,62 +1,80 @@
 @extends('layouts.app')
 
-
 @section('content')
-    <div class="container">
+
+<div class="container container-show">
 
 
-                    <h2>{{ $company->id }} {{ $company->title }} </h2>
-                    <p>{!! $company->description !!} </p>
-                    <p>{{ $company->address}} <p>
-
-
-                    @foreach ($clients as $client)
-                    <p>{{ $client->id}} </p>
-                    <p>{{ $client->name}} </p>
-                    <p>{{ $client->surname}} </p>
-                    @endforeach
-
-
-        {{-- <table class="table table-striped">
-
-            <tr>
-                <th> ID </th>
-                <th> Title </th>
-                <th> Description </th>
-                <th> Address </th>
-                <th> Company has total clients </th>
-
-                <th> Action </th>
-                <th> Delete </th>
-
-
-
-
-            </tr>
-
-            @foreach ($companies as $company)
-                <tr>
-                    <td>{{ $company->id }} </td>
-                    <td>{{ $company->title }} </td>
-                    <td>{!! $company->description !!} </td>
-                    <td>{{ $company->address}} </td>
-                    <td>{{ $company->companyClients->count()}} </td>
-
-                        <td>
-                        <div class="btn-group-vertical">
-                            <a href="{{ route('company.show', [$company]) }}" class="btn btn-secondary">Show </a>
-                            <a href="{{ route('company.edit', [$company]) }}" class="btn btn-primary">Edit </a>
-                        </div>
-                        <td>
-                        <form method="post" action={{ route('company.destroy', [$company]) }}>
-                            @csrf
-                            <button type="submit" class="btn btn-danger">DELETE</button>
-                        </form>
-                        <td>
-                    </td>
-            @endforeach
-        </table> --}}
-
-
+    <div class="card">
+        <div class="card-body">
+            <h2 class="card-title">{{$company->id}}. {{$company->title}}</h2>
+            <p class="card-text">{{$company->description }} </p>
+            <p class="card-text">{{$company->address }} </p>
+        </div>
     </div>
+
+    @if ($clientsCount != 0)
+        <h3 class="clients-list">Clients list</h3>
+        <table class="clients table table-striped">
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Surname</th>
+                <th>Description</th>
+                <th>Actions</th>
+            </tr>
+            @foreach ($clients as $client)
+            <tr class="client">
+                <td>{{$client->id}}</td>
+                <td>{{$client->name}}</td>
+                <td>{{$client->surname}}</td>
+                <td>{{$client->description}}</td>
+                <td>
+                    <form method="POST" action="{{route('client.destroy',[$client])}}">
+                        @csrf
+                        <button type="submit" class="btn btn-primary">DELETE </button>
+                    </form>
+
+                    <button class="btn btn-danger clientDelete" data-clientid="{{$client->id}}">DELETE AJAX</button>
+                </td>
+            </tr>
+            @endforeach
+        </table>
+    @else
+        <div class="alert alert-danger">
+            <p>The company has no clients</p>
+        </div>
+    @endif
+
+</div>
+<script>
+    $.ajaxSetup({
+        headers: {
+            "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr('content')
+        }
+    });
+    $(document).ready(function() {
+        $(".clientDelete").click(function() {
+            var clientID = $(this).attr("data-clientid");
+            $(this).parents(".client").remove();
+            //ajax
+            //route(client.destroyAjax,[$client])
+            $.ajax({
+                type: 'POST',
+                url: '/client/deleteAjax/' + clientID ,// action
+                success: function(data) {
+                    alert(data.success);
+                    console.log(data.clientsCount);
+                    if(data.clientsCount == 0) {
+                        $(".clients").remove();
+                        $(".clients-list").remove();
+                        $(".container-show").append("<div class='alert alert-danger'><p>The company has no clients</p></div> ")
+                        //
+                    }
+                }
+            });
+        });
+    });
+</script>
+
 @endsection
