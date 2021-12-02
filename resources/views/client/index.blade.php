@@ -25,7 +25,33 @@
         <div class="col-md-4">
             <input type="text" class="form-control" id="search-field" name="search-field"/>
             <button type="button" class="btn btn-primary" id="search-button" >Search</button>
+            <span class="search-feedback">
+            </span>
         </div>
+    </div>
+    <div class="sort-form row">
+    {{-- 2 selectus: pasirenkame stulpeli, kitame rikiavimo tvarka --}}
+        <select id="sortCol" name="sortCol">
+            <option value='id' selected="true">ID</option>
+            <option value='name'>Name</option>
+            <option value='surname'>Surname</option>
+            <option value='description'>Description</option>
+            <option value='company_id'>Company</option>
+        </select>
+
+        <select id="sortOrder" name="sortOrder">
+            <option value='ASC' selected="true">ASC</option>
+            <option value='DESC'>DESC</option>
+        </select>
+
+        <select id="company_id" name="company_id">
+            <option value="all" selected="true"> Show All </option>
+        @foreach ($companies as $company)
+            <option value='{{$company->id}}'>{{$company->title}}</option>
+        @endforeach
+        </select>
+    <button type="button" id="filterClients" class="btn btn-primary">Filter Clients</button>
+
     </div>
 
 <div class="alerts">
@@ -215,6 +241,24 @@
             "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr('content')
         }
     });
+    function createTable(clients){
+        $(".clients tbody").html("");
+        $(".clients tbody").append("<tr><th>ID</th><th>Name</th><th>Surname</th><th>Description</th><th>Company</th><th>Actions</th></tr>");
+        $.each(clients, function(key, client){
+                var clientRow = "<tr class='rowClient"+ client.id +"'>";
+                clientRow += "<td class='colClientId'>"+ client.id +"</td>";
+                clientRow += "<td class='colClientName'>"+ client.name +"</td>";
+                clientRow += "<td class='colClientSurname'>"+ client.surname +"</td>";
+                clientRow += "<td class='colClientDescription'>"+ client.description +"</td>";
+                clientRow += "<td class='colClientCompanyTitle'>"+ client.companyTitle +"</td>";
+                clientRow += "<td>";
+                clientRow += "<button type='button' class='btn btn-success show-client' data-clientid='"+ client.id +"'>Show</button>";
+                clientRow += "<button type='button' class='btn btn-secondary update-client' data-clientid='"+ client.id +"'>Update</button>";
+                clientRow += "</td>";
+                clientRow += "</tr>";
+                $(".clients tbody").append(clientRow);
+        });
+    }
  $(document).ready(function() {
     $(".addClientModal").click(function() {
         var clientName = $("#clientName").val();
@@ -340,6 +384,12 @@
       $(document).on('input', '#search-field', function() {
         //yra sekama kas ivedama i input
         var searchField = $("#search-field").val();
+        var searchFieldCount = searchField.length;
+        if(searchFieldCount != 0 && searchFieldCount < 3) {
+            $(".search-feedback").css('display', 'block');
+            $(".search-feedback").html("Min 3 symbols");
+        } else {
+            $(".search-feedback").css('display', 'none');
         $.ajax({
                 type: 'GET',
                 url: '/clients/searchAjax/',
@@ -350,24 +400,7 @@
                         $(".clients").css("display", "block");
                         $(".search-alert").html("");
                         $(".search-alert").html(data.success);
-                        $(".clients tbody").html("");
-                        $(".clients tbody").append("<tr><th>ID</th><th>Name</th><th>Surname</th><th>Description</th><th>Company</th><th>Actions</th></tr>");
-                        $.each(data.clients, function(key, client){
-                            //key = laukelio pavadinimas prie kurio ivyko klaida
-                            // $(".ajaxClients").append("<tr><td>"+client.id+"</td><td>" + client.name +"</td></tr>");
-                            var clientRow = "<tr class='rowClient"+ client.id +"'>";
-                            clientRow += "<td class='colClientId'>"+ client.id +"</td>";
-                            clientRow += "<td class='colClientName'>"+ client.name +"</td>";
-                            clientRow += "<td class='colClientSurname'>"+ client.surname +"</td>";
-                            clientRow += "<td class='colClientDescription'>"+ client.description +"</td>";
-                            clientRow += "<td class='colClientCompanyTitle'>"+ client.company_id +"</td>";
-                            clientRow += "<td>";
-                            clientRow += "<button type='button' class='btn btn-success show-client' data-clientid='"+ client.id +"'>Show</button>";
-                            clientRow += "<button type='button' class='btn btn-secondary update-client' data-clientid='"+ client.id +"'>Update</button>";
-                            clientRow += "</td>";
-                            clientRow += "</tr>";
-                            $(".clients tbody").append(clientRow);
-                        });
+                        createTable(data.clients);
                     } else {
                         $(".clients").css("display", "none");
                         $(".clients tbody").html("");
@@ -377,8 +410,40 @@
                     }
                 }
             });
-        console.log(searchField);
+        }
     })
+    $(document).on('click', '#filterClients', function() {
+        var sortCol = $("#sortCol").val();
+        var sortOrder = $("#sortOrder").val();
+        var company_id = $("#company_id").val();
+        $.ajax({
+                type: 'GET',
+                url: '/clients/indexAjax/',
+                data: {sortCol: sortCol, sortOrder: sortOrder, company_id: company_id },
+                success: function(data) {
+                    if($.isEmptyObject(data.error)) {
+                        createTable(data.clients);
+                    } else {
+                        console.log(data.error)
+                    }
+                }
+            });
+    });
+    // $(document).on('click', '#filterClients', function() {
+    //     var company_id = $("#company_id").val();
+    //     $.ajax({
+    //             type: 'GET',
+    //             url: '/clients/filterAjax/',
+    //             data: {company_id: company_id },
+    //             success: function(data) {
+    //                 if($.isEmptyObject(data.error)) {
+    //                     createTable(data.clients);
+    //                 } else {
+    //                     console.log(data.error)
+    //                 }
+    //             }
+    //         });
+    // })
  });
 </script>
 @endsection
