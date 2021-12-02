@@ -15,9 +15,8 @@ class CompanyController extends Controller
      */
     public function index()
     {
-        $companies = Company::All();
-
-        return view('company.index', ['companies' => $companies]);
+        $companies = Company::all();
+        return view('company.index', ['companies'=>$companies]);
     }
 
     /**
@@ -27,7 +26,7 @@ class CompanyController extends Controller
      */
     public function create()
     {
-        return view ('company.create');
+        return view("company.create");
     }
 
     /**
@@ -38,7 +37,7 @@ class CompanyController extends Controller
      */
     public function store(Request $request)
     {
- //ivesti kompanija be klientu x
+        //ivesti kompanija be klientu x
         //ivesti kompanja su vienu klientu x
         //ivesti kompanija su n+1 klientu x
 
@@ -80,9 +79,11 @@ class CompanyController extends Controller
      */
     public function show(Company $company)
     {
-        $clients = $company->companyClients;  //Masyvas su visais klientais, priklausanciais kompanijai
+        $clients = $company->companyClients; //masyvas su visais klientais priklausanciais kompanijai
         $clientsCount = $clients->count();
-        return view("company.show", ['company' => $company, 'clients' => $clients, 'clientsCount' => $clientsCount]);
+        //visi klientai priklausantys kompanijai
+
+        return view("company.show",['company' => $company, 'clients'=>$clients, 'clientsCount'=> $clientsCount]);
     }
 
     /**
@@ -114,8 +115,89 @@ class CompanyController extends Controller
      * @param  \App\Company  $company
      * @return \Illuminate\Http\Response
      */
+
+     // id = 7
+     // 7 elementa
     public function destroy(Company $company)
     {
         //
+    }
+
+    // [1,7,3]
+
+    public function destroySelected(Request $request) {
+
+
+        //koks cia yra kinatmojo tipas?
+        //Mes gauname is Javascripto JSON masyva, kaip paprastas tekstas
+        //Json masyva mes turime pasiversti i PHP masyva
+        //json masyvo dekodavimas: tekstas(json masyvas) => php masyva
+        // $checkedCompaniesArray = json_decode( $checkedCompanies, true);
+        // $request funkcija pavercia paprasta masyva
+        // [1,2,3]
+
+
+        //1. Pries bandymai trinti, turime patikrinti ar kompanija turi klientu
+        //2. Kuriu kompaniju istrinti nepavyko?
+
+        //Saskaitu fakturu sistema
+        //invoices
+        //invoices_elements
+        //Invoices elements kurie su invoices
+
+        //1. Kai trinama kompanija, kartu isitrina ir visi jos klientai
+
+        // 1. Surasti visus kompanijai priklausancius klientus pagal rysio funkcija, ir istrinti
+        // 2. pakeisti rysio nustatymus
+
+        //tas rysys registruojasi i duomenu baze, ir rysys turi tam tikrus nustatymus
+        //migracijoje viena nustatyma ir mums leisti istrinti
+        //migrate fresh
+
+
+        $checkedCompanies = $request->checkedCompanies; // visus id
+
+        $messages = array();
+
+        //error 0
+        //success 1
+
+        //error - 'danger'
+        //success - 'success'
+
+        $errorsuccess = array();
+
+        foreach($checkedCompanies as $companyId) {
+            //kaip pasirinkti kompanija pagal Id?
+            // $company = Company::where("id", $companyId);
+            $company = Company::find($companyId);
+            $clients_count = $company->companyClients->count();
+            // if($clients_count > 0) {
+            //    $errorsuccess[] = 'danger';
+            //    $messages[] = "Company ".$companyId."cannot be deleted because it has clients";
+
+            // } else {
+                $deleteAction = $company->delete();
+                if($deleteAction) {
+                    $errorsuccess[] = 'success';
+                    $messages[] = "Company ".$companyId." deleted successfully";
+                } else {
+                    $messages[] = "Something went wrong";
+                    $errorsuccess[] = 'danger';
+                }
+            // }
+        }
+
+
+        $success = [
+            'success' => $checkedCompanies,
+            'messages' => $messages,
+            'errorsuccess' => $errorsuccess
+        ];
+
+        $success_json = response()->json($success);
+
+        return $success_json;
+
     }
 }

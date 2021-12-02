@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Client;
 use App\Company;
 use Illuminate\Http\Request;
+use Validator;
 
 class ClientController extends Controller
 {
@@ -15,9 +16,9 @@ class ClientController extends Controller
      */
     public function index()
     {
-        $clients = Client::All();
-
-        return view('client.index', ['clients' => $clients]);
+        $clients = Client::all();
+        $companies = Company::all();
+        return view('client.index',['clients'=> $clients, 'companies'=> $companies]);
     }
 
     /**
@@ -27,8 +28,8 @@ class ClientController extends Controller
      */
     public function create()
     {
-        $companies = Company::All();
-        return view('client.create', ['companies' => $companies]);
+        $companies = Company::all();
+        return view("client.create", ['companies'=> $companies]);
     }
 
     /**
@@ -39,17 +40,15 @@ class ClientController extends Controller
      */
     public function store(Request $request)
     {
-
-        $companyNew = $request->companyNew; //1 arba false
-        //jeigu companyNew ==1(pazymetas), tada vykdomas naujos kompanijos pridejimas
-        //kitu atveju kompanija yra imama is select
-        // 1 - interpretuoja kaip true arba kaip string. programa 1 supranta kaip teksta
+        $companyNew = $request->companyNew; // 1 arba false
+        // jeigu companyNew == 1(pazymetas) vykdomas naujos kompanijos pridejimas
+        // kitu atveju kompanija yra imama is select
 
         // return $companyNew;
 
-        if($companyNew == "1") {
-            $company= new Company;
-            $company->title = $request->companyTitle;
+        if($companyNew == "1") { // koks kintamojo tipas ateina is checkbox jei jis pazymetas? 1 tekstas
+            $company = new Company;
+            $company->title =  $request->companyTitle;
             $company->description = $request->companyDescription;
             $company->address = $request->companyAddress;
             $company->save();
@@ -60,35 +59,69 @@ class ClientController extends Controller
         }
 
 
-
-        //$company->id
-
-
         $client = new Client;
-
-
-        // $validateVar = $request->validate([
-        //     'task_title' => 'required|regex:/^[\pL\s]+$/u|unique:tasks,title|min:6|max:225',
-        //     'task_description' => 'required|max:1500',
-        //     'task_logo' => 'image|mimes:jpg,jpeg,png',
-        //     'type_id' => 'required|numeric|gt:0|lte:'.$type_count,
-        //     'owner_id' => 'required|numeric|gt:0|lte:'.$owners_count,
-        //     'task_start_date'=>'required|before:task_end_date',
-        //     'task_end_date'=>'required'
-
-        // ]);
 
         $client->name = $request->clientName;
         $client->surname = $request->clientSurname;
         $client->description = $request->clientDescription;
         $client->company_id = $companyId;
 
-        // $client->company_id = $request->id; nuo ifo $request->clientCompany, else $company->id  if(companyNew=="1") $company->id else $request->clientCompany
-
         $client->save();
-        return redirect()->route("client.index");
+
+        return redirect()->route('client.index');
     }
 
+    public function storeAjax(Request $request) {
+
+
+        $client = new Client;
+
+        $input = [
+            'clientName' => $request->clientName,
+            'clientSurname' => $request->clientSurname,
+            'clientDescription' => $request->clientDescription,
+            'clientCompany' => $request->clientCompany
+        ];//ka mes ivedama, laukeliu pavadinimai kuriuos validuosim
+        $rules = [
+            'clientName' => 'required|min:3',
+            'clientSurname' => 'required|min:3',
+            'clientDescription' => 'min:15',
+            'clientCompany' => 'numeric'
+        ]; //taisykles
+
+        $validator = Validator::make($input, $rules);
+
+        if($validator->passes()) {
+            $client->name = $request->clientName;
+            $client->surname = $request->clientSurname;
+            $client->description = $request->clientDescription;
+            $client->company_id = $request->clientCompany;
+
+            $client->save();
+
+            $success = [
+                'success' => 'Client added successfully',
+                'clientId' => $client->id,
+                'clientName' => $client->name,
+                'clientSurname' => $client->surname,
+                'clientDescription' => $client->description,
+                'clientCompany' => $client->clientCompany->title
+            ];
+
+            $success_json = response()->json($success);
+
+            return $success_json;
+        }
+
+        $errors = [
+            'error' => $validator->messages()->get('*')
+        ];
+
+        $errors_json = response()->json($errors);
+
+        return $errors_json;
+
+    }
     /**
      * Display the specified resource.
      *
@@ -97,7 +130,23 @@ class ClientController extends Controller
      */
     public function show(Client $client)
     {
-        //
+        return view("client.show", ['client' => $client]);
+    }
+
+    public function showAjax(Client $client) {
+
+        $success = [
+            'success' => 'Client recieved successfully',
+            'clientId' => $client->id,
+            'clientName' => $client->name,
+            'clientSurname' => $client->surname,
+            'clientDescription' => $client->description,
+            'clientCompany' => $client->clientCompany->title
+        ];
+
+        $success_json = response()->json($success);
+
+        return $success_json;
     }
 
     /**
@@ -108,7 +157,23 @@ class ClientController extends Controller
      */
     public function edit(Client $client)
     {
-        //
+        return view("client.edit", ['client'=> $client]);
+    }
+
+    //gauti informacija apie klienta i edit modal forma
+    public function editAjax(Client $client) {
+        $success = [
+            'success' => 'Client recieved successfully',
+            'clientId' => $client->id,
+            'clientName' => $client->name,
+            'clientSurname' => $client->surname,
+            'clientDescription' => $client->description,
+            'clientCompany' => $client->company_id
+        ];
+
+        $success_json = response()->json($success);
+
+        return $success_json;
     }
 
     /**
@@ -120,7 +185,56 @@ class ClientController extends Controller
      */
     public function update(Request $request, Client $client)
     {
-        //
+
+
+    }
+
+    //kuri atnaujintus duomenis patalpis i duomenu baze
+    public function updateAjax(Request $request, Client $client) {
+        $input = [
+            'clientName' => $request->clientName,
+            'clientSurname' => $request->clientSurname,
+            'clientDescription' => $request->clientDescription,
+            'clientCompany' => $request->clientCompany
+        ];//ka mes ivedama, laukeliu pavadinimai kuriuos validuosim
+        $rules = [
+            'clientName' => 'required|min:3',
+            'clientSurname' => 'required|min:3',
+            'clientDescription' => 'min:15',
+            'clientCompany' => 'numeric'
+        ]; //taisykles
+
+        $validator = Validator::make($input, $rules);
+
+        if($validator->passes()) {
+            $client->name = $request->clientName;
+            $client->surname = $request->clientSurname;
+            $client->description = $request->clientDescription;
+            $client->company_id = $request->clientCompany;
+
+            $client->save();
+
+            $success = [
+                'success' => 'Client update successfully',
+                'clientId' => $client->id,
+                'clientName' => $client->name,
+                'clientSurname' => $client->surname,
+                'clientDescription' => $client->description,
+                'clientCompany' => $client->clientCompany->title
+            ];
+
+            $success_json = response()->json($success);
+
+            return $success_json;
+        }
+
+        $errors = [
+            'error' => $validator->messages()->get('*')
+        ];
+
+        $errors_json = response()->json($errors);
+
+        return $errors_json;
     }
 
     /**
@@ -161,5 +275,55 @@ class ClientController extends Controller
         $success_json = response()->json($success);
 
         return $success_json;
+    }
+
+    public function searchAjax(Request $request) {
+        //Jos pasiima kintamuosius is ajax($request)
+        //Atliekami tam tikri veiksmai
+        //Ir grazinamas sekmes/nesekmes masyvas
+
+        //reikia pasiimti informacija is request - search field.
+        // Visus klientus pagal search field: name, surname, aprasyma, pagal visus
+        //sekmes atveju - rezultatu lentele
+        //nesekmes atveju - na, rezultatu nera
+
+
+        //pagal sugalvota paieskos zodi, gauti visus klientus
+        $searchValue = $request->searchField;
+
+        //
+        // $clients = Client::all();
+
+        $clients = Client::query()
+            ->where('name', 'like', "%{$searchValue}%")
+            ->orWhere('surname', 'like', "%{$searchValue}%")
+            ->orWhere('description', 'like', "%{$searchValue}%")
+            ->get();
+
+        //$clients kintamasis yra tuscias, vadinasi as galiu formuoti nesekmes zinute: na, rezultatu nera
+        //jei searchValue yra tuscias, yra grazinami rezultatai
+
+        //sekmes zinute
+        if($searchValue == '' || count($clients)!= 0) {
+
+            $success = [
+                'success' => 'Found '.count($clients),
+                'clients' => $clients
+            ];
+
+            $success_json = response()->json($success);
+
+
+            return $success_json; //yra musu sekmes pranesimas
+        }
+
+        $error = [
+            'error' => 'No results are found'
+        ];
+
+        $errors_json = response()->json($error);
+
+        return $errors_json;
+
     }
 }
